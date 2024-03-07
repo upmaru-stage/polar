@@ -13,27 +13,23 @@ dependencies:
 
 stack: alpine/3.19
 
-build:
-  command: |
-    export MIX_ENV=prod
-
-    mix local.hex --force
-    mix local.rebar --force
-    mix do deps.get --only prod
-
-    # npm --prefix ./assets install ./assets
-
-    # Comment out mix assets.deploy for non phoenix apps
-    mix assets.deploy
-
-    mix release
-  destinations:
-    - _build/prod/rel/polar/*
+hook:
+  post-deinstall: |
+    rc-service polar stop
+    rc-update del polar
+  post-install: |
+    rc-update add polar
+    rc-service polar migrate
+  post-upgrade: |
+    rc-service polar migrate
+    rc-service polar start
+  pre-upgrade: |
+    rc-service polar stop
 
 run:
   commands:
     - binary: polar
-      call: eval 'Polar.Release.migrate'
+      call: eval 'Polar.Release.Tasks.migrate'
       name: migrate
     - binary: polar
       call: remote
@@ -49,18 +45,22 @@ run:
       start:
         call: start
 
-hook:
-  post-deinstall: |
-    rc-service polar stop
-    rc-update del polar
-  post-install: |
-    rc-update add polar
-    rc-service polar migrate
-  post-upgrade: |
-    rc-service polar migrate
-    rc-service polar start
-  pre-upgrade: |
-    rc-service polar stop
+build:
+  command: |
+    export MIX_ENV=prod
+
+    mix local.hex --force
+    mix local.rebar --force
+    mix do deps.get --only prod
+
+    # npm --prefix ./assets install ./assets
+
+    # Comment out mix assets.deploy for non phoenix apps
+    mix assets.deploy
+
+    mix release
+  destination:
+    - _build/prod/rel/polar/*
 
 kits:
   - description: Web service
@@ -80,5 +80,3 @@ kits:
       - default_value: ecto:///
         driver: database/postgresql
         key: DATABASE
-      - driver: bucket/aws-s3
-        key: AWS_S3
