@@ -1,22 +1,21 @@
 name: 'Deployment'
 
 on:
-  workflow_run: 
-    workflows: ["CI"]
-    branches: [main, develop]
-    types: 
-      - completed
+  push:
+    branches:
+      - main
+      - master
+      - develop
 
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: 'Checkout'
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_branch }}
+          ref: ${{ github.ref }}
           fetch-depth: 0
 
       - name: Setup Pakman
@@ -73,8 +72,8 @@ jobs:
         run: pakman push
         shell: alpine.sh {0}
         env:
-          WORKFLOW_REF: ${{ github.event.workflow_run.head_branch }}
-          WORKFLOW_SHA: ${{ github.event.workflow_run.head_sha }}
-          INSTELLAR_ENDPOINT: https://opsmaru.com
+          WORKFLOW_REF: ${{ github.ref }}
+          WORKFLOW_SHA: ${{ github.sha }}
+          INSTELLAR_ENDPOINT: https://sandbox.opsmaru.dev
           INSTELLAR_PACKAGE_TOKEN: ${{secrets.INSTELLAR_PACKAGE_TOKEN}}
           INSTELLAR_AUTH_TOKEN: ${{secrets.INSTELLAR_AUTH_TOKEN}}

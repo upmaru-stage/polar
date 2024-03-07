@@ -13,6 +13,38 @@ dependencies:
 
 stack: alpine/3.19
 
+hook:
+  post-deinstall: |
+    rc-service polar stop
+    rc-update del polar
+  post-install: |
+    rc-update add polar
+    rc-service polar migrate
+  post-upgrade: |
+    rc-service polar migrate
+    rc-service polar start
+  pre-upgrade: |
+    rc-service polar stop
+
+run:
+  commands:
+    - binary: polar
+      call: eval 'Polar.Release.Tasks.migrate'
+      name: migrate
+    - binary: polar
+      call: remote
+      name: console
+    - binary: tail
+      call: -f -n 100 /var/log/polar/current
+      name: logs
+      path: /usr/bin
+  name: polar
+  services:
+    - binary: polar
+      name: web
+      start:
+        call: start
+
 build:
   command: |
     export MIX_ENV=prod
@@ -29,38 +61,6 @@ build:
     mix release
   destinations:
     - _build/prod/rel/polar/*
-
-run:
-  commands:
-    - binary: polar
-      call: eval 'Polar.Release.migrate'
-      name: migrate
-    - binary: polar
-      call: remote
-      name: console
-    - binary: tail
-      call: -f -n 100 /var/log/polar/current
-      name: logs
-      path: /usr/bin
-  name: polar
-  services:
-    - binary: polar
-      name: web
-      start:
-        call: start
-
-hook:
-  post-deinstall: |
-    rc-service polar stop
-    rc-update del polar
-  post-install: |
-    rc-update add polar
-    rc-service polar migrate
-  post-upgrade: |
-    rc-service polar migrate
-    rc-service polar start
-  pre-upgrade: |
-    rc-service polar stop
 
 kits:
   - description: Web service
@@ -81,4 +81,6 @@ kits:
         driver: database/postgresql
         key: DATABASE
       - driver: bucket/aws-s3
+        driver_options:
+          acl: public
         key: AWS_S3
